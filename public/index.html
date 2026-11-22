@@ -33,6 +33,23 @@ button.ghost:hover{border-color:var(--acc)}
 .label{font:700 11px var(--head);letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin:16px 0 6px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 0}
 .chip{border:1px solid var(--line);background:#0b0e1a;color:var(--fg);border-radius:99px;padding:4px 11px;font:600 12px var(--body);cursor:pointer}
+#study{position:fixed;inset:0;z-index:9999;background:#f6f7fb;color:#1c1f26;overflow:auto;padding-top:env(safe-area-inset-top,0px)}
+#study,#study *{font-family:system-ui,sans-serif;box-sizing:border-box}
+#study header{display:flex;align-items:center;gap:18px;padding:12px 22px;background:#fff;border-bottom:1px solid #dde1ea;flex-wrap:wrap}
+#study header b{font-size:18px;color:#2f5fe3}
+#study nav{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+#study header span{font-size:12px;color:#8a92a6}
+#study main{max-width:680px;margin:0 auto;padding:26px 20px}
+#study h2{font:600 22px system-ui;margin:0 0 16px;color:#1c1f26}
+#study button{background:#fff;color:#1c1f26;border:1px solid #cfd4de;border-radius:8px;padding:8px 14px;font:600 14px system-ui}
+#study nav button.on,#study #ststart{background:#2f5fe3;color:#fff;border-color:#2f5fe3}
+#study input,#study textarea{background:#fff;color:#1c1f26;border:1px solid #cfd4de;border-radius:8px;padding:9px 11px;font:15px system-ui;margin:6px 0;width:100%}
+#study textarea{height:320px;resize:vertical}
+#study #stcard{background:#fff;border:1px solid #dde1ea;border-radius:14px;padding:44px 28px;min-height:190px;text-align:center;cursor:pointer;box-shadow:0 2px 10px rgba(30,40,80,.07)}
+#stq{font-size:22px;font-weight:600}#sta{margin-top:18px;font-size:18px;color:#2f5fe3}
+#study .r{display:flex;gap:10px;align-items:center;margin:14px 0}
+#sttime{font-size:72px;font-weight:700;letter-spacing:2px}
+#study details{margin-top:18px}
 .chip.t{cursor:default}.chip.sel{border-color:var(--acc);color:var(--acc);background:#1a1500}
 .msg{min-height:18px;margin:8px 0 0;color:var(--acc);font-size:13px}
 .small{font-size:12px;color:var(--mut);margin-top:10px}
@@ -87,7 +104,7 @@ button.ghost:hover{border-color:var(--acc)}
 <div class="chips" id="saved"></div>
 <div class="label">Tiers</div>
 <div class="chips" id="tiers"></div>
-<div class="small keys"><b>WASD</b> move · <b>mouse</b> aim · <b>click / Space</b> main attack · <b>Q E R F C V Z X G</b> abilities, unlocked at Lv 3, 5, 8, 12, 16, 20, 25, 30, 40 · <b>Esc</b> pause</div>
+<div class="small keys"><b>WASD</b> move · <b>mouse</b> aim · <b>click / Space</b> main attack · <b>Q E R F C V Z X G</b> abilities, unlocked at Lv 3, 5, 8, 12, 16, 20, 25, 30, 40 · <b>Esc</b> pause · <b id="kk"></b> or <b>`</b> instantly switch to the study screen · <button class="chip" id="kbind">Change study key</button> <span id="kmsg"></span></div>
 <div class="row" style="margin-top:14px"><button class="ghost" id="rnd">Surprise me</button></div>
 </div>
 <div class="col side" id="saveHost"></div>
@@ -102,6 +119,10 @@ button.ghost:hover{border-color:var(--acc)}
 </div>
 <div class="abil" id="abil"></div></div>
 <div id="banner"></div><div id="toast"></div><div id="pings"></div>
+<div id="study" hidden><header><b>StudyDesk</b><nav><button class="on" data-st="stc">Flashcards</button><button data-st="stt">Focus timer</button><button data-st="stnotes">Notes</button></nav><span id="stkey"></span></header>
+<main><section id="stc"><h2>Flashcards</h2><div id="stcard" tabindex="0"><div id="stq"></div><div id="sta" hidden></div></div><div class="r"><button id="stprev">Back</button><span id="stn"></span><button id="stnext">Next</button><button id="stshuf">Shuffle</button></div><details><summary>Add a card</summary><input id="staq" placeholder="Question"><input id="staa" placeholder="Answer"><button id="stadd">Add</button></details></section>
+<section id="stt" hidden><h2>Focus timer</h2><div id="sttime">25:00</div><div class="r"><button id="ststart">Start</button><button id="streset">Reset</button></div></section>
+<section id="stnotes" hidden><h2>Notes</h2><textarea id="stnotesta" placeholder="Type your notes here. They save on this device."></textarea></section></main></div>
 
 <div id="pause" class="ov" hidden><div class="card"><h2>Paused</h2><p>Your progress saves automatically each wave. Copy the code to keep it somewhere else.</p><div id="pauseHost"></div><div class="row" style="margin-top:16px"><button id="resume">Resume</button><button class="ghost" id="quit">Back to menu</button></div></div></div>
 
@@ -295,7 +316,7 @@ try{Promise.resolve(window.claude&&window.claude.use?window.claude.use("room"):n
   r.on("cast",m=>{if(!m.sameTab)allyCast(m.data)})}).catch(()=>{})}catch(e){}
 /* ---------- game state ---------- */
 let G=null,running=false,paused=false,snap=true,keys={},mouse=new THREE.Vector2(),down=false,shake=0,T0=0;
-addEventListener("keydown",e=>{if(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;const k=e.key.toLowerCase();if(k==="escape"){setPause(!paused);return}if(!running)return;keys[k]=true;if(k==="q")cast(1);if(k==="e")cast(2);if(k==="r")cast(3);{const j="fcvzxg".indexOf(k);if(j>=0)cast(4+j)}if(k===" "){e.preventDefault()}});
+addEventListener("keydown",e=>{if(binding){e.preventDefault();const k=e.key.toLowerCase();if(k==="escape"){binding=false;keyUI();return}if(/^[wasdqerfcvzxg ]$/.test(k)||k.startsWith("arrow")||k==="control"||k==="alt"||k==="meta"){$("kmsg").textContent="That key can't be used. Pick another.";return}SKEY=k;try{localStorage.setItem("powerscape-skey",k)}catch(x){}binding=false;keyUI();return}if((e.key==="`"||e.key.toLowerCase()===SKEY)&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!e.repeat){e.preventDefault();toggleStudy();return}if(!$("study").hidden)return;if(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;const k=e.key.toLowerCase();if(k==="escape"){setPause(!paused);return}if(!running)return;keys[k]=true;if(k==="q")cast(1);if(k==="e")cast(2);if(k==="r")cast(3);{const j="fcvzxg".indexOf(k);if(j>=0)cast(4+j)}if(k===" "){e.preventDefault()}});
 addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false});
 addEventListener("mousemove",e=>{mouse.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1)});
 addEventListener("mousedown",e=>{if(running&&e.target===$("c"))down=true});addEventListener("mouseup",()=>down=false);
@@ -573,6 +594,28 @@ function die(){
   $("res").textContent=`${G.p.name} (${T[G.p.tier][0]}) reached wave ${G.wave} with ${G.kills} defeats and now sits at level ${G.s.lvl}. Best wave: ${G.s.best}.`;$("over").hidden=false;$("hud").hidden=true;
 }
 function setPause(v){if(!G||G.dead||!(running||paused))return;paused=v;running=!v;down=false;$("pause").hidden=!v;if(v){save()}}
+/* ---------- study screen: press ` (backtick) to jump to a study site instantly; press it again to come back ---------- */
+let SKEY="tab",binding=false;try{SKEY=localStorage.getItem("powerscape-skey")||"tab"}catch(e){}
+const kl=()=>SKEY.length>1?SKEY[0].toUpperCase()+SKEY.slice(1):SKEY.toUpperCase();
+function keyUI(){$("kk").textContent=kl();$("stkey").textContent="Press "+kl()+" (or `) to go back";$("kbind").textContent=binding?"Press the key you want...":"Change study key";if(!binding)$("kmsg").textContent=""}
+$("kbind").onclick=()=>{binding=true;keyUI()};keyUI();
+const STUDY=$("study"),TTL=document.title;
+function toggleStudy(){const on=STUDY.hidden;STUDY.hidden=!on;if(on){if(document.activeElement)document.activeElement.blur();keys={};down=false;if(running)setPause(true);document.title="StudyDesk · Flashcards"}else document.title=TTL}
+(function(){const C=[["What is the powerhouse of the cell?","The mitochondria. It makes ATP through cellular respiration."],["State the Pythagorean theorem.","a² + b² = c², for the sides of a right triangle."],["Photosynthesis equation","6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂"],["Capital of Australia?","Canberra"],["Derivative of sin x?","cos x"],["In what year did World War II end?","1945"],["What is a noun?","A word that names a person, place, thing or idea."],["Formula for speed","speed = distance ÷ time"]];
+  let i=0,f=false,left=1500,iv=null;
+  const show=()=>{$("stq").textContent=C[i][0];$("sta").textContent=C[i][1];$("sta").hidden=!f;$("stn").textContent=(i+1)+" / "+C.length};
+  $("stcard").onclick=()=>{f=!f;show()};
+  $("stnext").onclick=()=>{i=(i+1)%C.length;f=false;show()};
+  $("stprev").onclick=()=>{i=(i+C.length-1)%C.length;f=false;show()};
+  $("stshuf").onclick=()=>{for(let k=C.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[C[k],C[j]]=[C[j],C[k]]}i=0;f=false;show()};
+  $("stadd").onclick=()=>{const x=$("staq").value.trim(),y=$("staa").value.trim();if(x&&y){C.push([x,y]);$("staq").value="";$("staa").value="";i=C.length-1;f=false;show()}};
+  show();
+  const nb=document.querySelectorAll("#study nav button");nb.forEach(b=>b.onclick=()=>{nb.forEach(x=>x.classList.toggle("on",x===b));["stc","stt","stnotes"].forEach(id=>$(id).hidden=id!==b.dataset.st)});
+  const tm=()=>{$("sttime").textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0")};
+  $("ststart").onclick=()=>{if(iv){clearInterval(iv);iv=null;$("ststart").textContent="Start";return}$("ststart").textContent="Pause";iv=setInterval(()=>{if(--left<=0){left=0;clearInterval(iv);iv=null;$("ststart").textContent="Start"}tm()},1000)};
+  $("streset").onclick=()=>{clearInterval(iv);iv=null;left=1500;$("ststart").textContent="Start";tm()};
+  const nt=$("stnotesta");try{nt.value=localStorage.getItem("powerscape-notes")||""}catch(e){}nt.oninput=()=>{try{localStorage.setItem("powerscape-notes",nt.value)}catch(e){}};
+})();
 $("resume").onclick=()=>setPause(false);
 $("quit").onclick=()=>{paused=false;running=false;save();showSaved();if(room)room.presence({on:null}).catch(()=>{});$("pause").hidden=true;$("hud").hidden=true;$("menu").hidden=false};
 $("again").onclick=()=>start(G.p);
